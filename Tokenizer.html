@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GPT Tokenizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/gpt-tokenizer"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange: #F4622A;
+      --orange-light: #FFF0EB;
+      --orange-mid: #FFD9CC;
+      --bg: #FAFAF8;
+      --text: #1A1A18;
+      --muted: #888884;
+      --border: #E8E8E4;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 24px 80px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .wordmark {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      background: var(--orange);
+      border-radius: 50%;
+    }
+
+    .wordmark span {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    h1 strong {
+      font-weight: 500;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--muted);
+      font-weight: 300;
+      max-width: 420px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Main card */
+    .card {
+      width: 100%;
+      max-width: 680px;
+    }
+
+    /* Textarea */
+    .input-wrap {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      padding: 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--orange);
+    }
+
+    textarea::placeholder {
+      color: #C8C8C4;
+    }
+
+    /* Stats bar */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-bottom: 28px;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .stats.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 26px;
+      font-weight: 500;
+      color: var(--orange);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .stat-divider {
+      width: 1px;
+      background: var(--border);
+      align-self: stretch;
+    }
+
+    /* Token output */
+    #output {
+      line-height: 2.4;
+      text-align: center;
+      min-height: 40px;
+    }
+
+    .token {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      margin: 2px 1px;
+      position: relative;
+      cursor: default;
+      transition: transform 0.1s;
+    }
+
+    .token:hover {
+      transform: translateY(-2px);
+    }
+
+    .token-id {
+      display: block;
+      font-size: 9px;
+      color: rgba(0,0,0,0.35);
+      text-align: center;
+      margin-top: 1px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Token colors — warm palette around orange */
+    .tc-0 { background: #FFE4DA; }
+    .tc-1 { background: #FFF3CC; }
+    .tc-2 { background: #FFD9CC; }
+    .tc-3 { background: #FFE8B3; }
+    .tc-4 { background: #FCEEE0; }
+
+    /* Divider */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin: 36px 0;
+    }
+
+    /* About button */
+    .about-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 auto;
+      padding: 10px 20px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.01em;
+    }
+
+    .about-btn:hover {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .about-btn .icon {
+      font-size: 14px;
+    }
+
+    /* About panel */
+    #about-panel {
+      display: none;
+      margin-top: 24px;
+      padding: 28px 32px;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      text-align: left;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    #about-panel h3 {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      font-weight: 500;
+      margin-bottom: 10px;
+      margin-top: 20px;
+    }
+
+    #about-panel h3:first-child { margin-top: 0; }
+
+    #about-panel p {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #555;
+    }
+
+    .source-list {
+      list-style: none;
+      margin-top: 4px;
+    }
+
+    .source-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .source-list li:last-child { border-bottom: none; }
+
+    .source-list strong {
+      display: block;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .source-list a {
+      color: var(--orange);
+      text-decoration: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+    }
+
+    .source-list a:hover { text-decoration: underline; }
+
+    .meta {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      color: var(--border);
+      font-size: 13px;
+      font-family: 'DM Mono', monospace;
+      padding: 12px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="wordmark">
+      <div class="dot"></div>
+      <span>GPT-4 Tokenizer</span>
+    </div>
+    <h1>See how <strong>language models</strong><br>read your text</h1>
+    <p class="subtitle">Each coloured block is one token — the unit GPT-4 actually processes. Numbers below are token IDs.</p>
+  </header>
+
+  <div class="card">
+
+    <div class="input-wrap">
+      <textarea id="input" placeholder="Type or paste any text here…" oninput="tokenize()"></textarea>
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat">
+        <div class="stat-value" id="token-count">0</div>
+        <div class="stat-label">Tokens</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <div class="stat-value" id="char-count">0</div>
+        <div class="stat-label">Characters</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <div class="stat-value" id="ratio">—</div>
+        <div class="stat-label">Chars / Token</div>
+      </div>
+    </div>
+
+    <div id="output">
+      <div class="empty-state">tokens will appear here</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="about-btn" onclick="toggleAbout()">
+      <span class="icon">ℹ</span>
+      <span id="about-label">About this tool</span>
+    </button>
+
+    <div id="about-panel">
+      <h3>What is this?</h3>
+      <p>
+        This tool tokenizes text exactly as GPT-4 does, using the <strong>cl100k_base</strong> vocabulary
+        of ~100,000 tokens. It runs entirely in your browser — no data is sent anywhere.
+      </p>
+      <p style="margin-top:10px">
+        Tokenization is how language models read text: they don't see characters or words,
+        they see <em>tokens</em> — chunks determined by a Byte Pair Encoding (BPE) algorithm
+        trained on a large corpus of text.
+      </p>
+
+      <h3>Sources</h3>
+      <ul class="source-list">
+        <li>
+          <strong>gpt-tokenizer — JavaScript library used here</strong>
+          <a href="https://github.com/niieani/gpt-tokenizer" target="_blank">github.com/niieani/gpt-tokenizer</a>
+        </li>
+        <li>
+          <strong>npm package — version info &amp; changelog</strong>
+          <a href="https://www.npmjs.com/package/gpt-tokenizer" target="_blank">npmjs.com/package/gpt-tokenizer</a>
+        </li>
+        <li>
+          <strong>Live playground — official demo</strong>
+          <a href="https://gpt-tokenizer.dev" target="_blank">gpt-tokenizer.dev</a>
+        </li>
+        <li>
+          <strong>tiktoken — OpenAI's original Python tokenizer</strong>
+          <a href="https://github.com/openai/tiktoken" target="_blank">github.com/openai/tiktoken</a>
+        </li>
+      </ul>
+
+      <p class="meta">Author: Bazyli Brzoska &nbsp;·&nbsp; License: MIT</p>
+    </div>
+
+  </div>
+
+  <script>
+    const colors = ['tc-0','tc-1','tc-2','tc-3','tc-4'];
+
+    function tokenize() {
+      const text = document.getElementById('input').value;
+      const stats = document.getElementById('stats');
+      const output = document.getElementById('output');
+
+      if (!text) {
+        stats.classList.remove('visible');
+        output.innerHTML = '<div class="empty-state">tokens will appear here</div>';
+        return;
+      }
+
+      const tokens = GPTTokenizer_cl100k_base.encode(text);
+      const decoded = tokens.map(t => GPTTokenizer_cl100k_base.decode([t]));
+
+      document.getElementById('token-count').textContent = tokens.length;
+      document.getElementById('char-count').textContent = text.length;
+      document.getElementById('ratio').textContent = (text.length / tokens.length).toFixed(1);
+      stats.classList.add('visible');
+
+      output.innerHTML = decoded.map((t, i) => {
+        const safe = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'·');
+        return `<span class="token ${colors[i % 5]}">${safe}<span class="token-id">${tokens[i]}</span></span>`;
+      }).join('');
+    }
+
+    function toggleAbout() {
+      const panel = document.getElementById('about-panel');
+      const label = document.getElementById('about-label');
+      const open = panel.style.display === 'block';
+      panel.style.display = open ? 'none' : 'block';
+      label.textContent = open ? 'About this tool' : 'Close';
+    }
+  </script>
+
+</body>
+</html>
